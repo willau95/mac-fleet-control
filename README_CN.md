@@ -31,9 +31,8 @@ Master C ──┘     任何网络都能连              └── Worker N
 
 **每台机器都要做：**
 
-1. **安装 Tailscale** — 二选一：
-   - App Store: https://apps.apple.com/app/tailscale/id1475387142
-   - Homebrew: `brew install --cask tailscale`
+1. **安装 Tailscale**（推荐 App Store 版，更稳定可靠）：
+   - https://apps.apple.com/app/tailscale/id1475387142
 
 2. **打开 Tailscale** → 登录同一个账号 → 确保显示已连接
 

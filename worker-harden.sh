@@ -279,9 +279,22 @@ done
 if [ -n "$TS_CLI" ]; then
   TS_STATUS=$("$TS_CLI" status --json 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin).get('BackendState',''))" 2>/dev/null || echo "")
   if [ "$TS_STATUS" != "Running" ]; then
-    echo "$(date): Tailscale not running, attempting fix..." >> "$LOG"
-    open -a Tailscale 2>/dev/null || true
-    sleep 5
+    echo "$(date): Tailscale not running (state=$TS_STATUS), attempting fix..." >> "$LOG"
+    
+    # Try App Store version first
+    if [ -d "/Applications/Tailscale.app" ]; then
+      open -a Tailscale 2>/dev/null || true
+      sleep 5
+      echo "$(date): Opened Tailscale.app" >> "$LOG"
+    fi
+    
+    # Try brew service restart (for CLI version)
+    if command -v brew &>/dev/null && brew list tailscale &>/dev/null 2>&1; then
+      brew services restart tailscale 2>/dev/null || true
+      sleep 3
+      echo "$(date): Restarted brew tailscale service" >> "$LOG"
+    fi
+    
     # Try bringing it up
     "$TS_CLI" up 2>/dev/null || true
     echo "$(date): Tailscale restart attempted" >> "$LOG"

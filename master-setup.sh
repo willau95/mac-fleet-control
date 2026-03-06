@@ -56,9 +56,8 @@ TS_CLI=$(detect_tailscale)
 if [ -z "$TS_CLI" ]; then
   err "Tailscale not found."
   echo ""
-  echo -e "  ${BOLD}Install Tailscale first (pick one):${NC}"
-  echo -e "    1. App Store: ${CYAN}https://apps.apple.com/app/tailscale/id1475387142${NC}"
-  echo -e "    2. Homebrew:  ${CYAN}brew install --cask tailscale${NC}"
+  echo -e "  ${BOLD}Install Tailscale from the App Store:${NC}"
+  echo -e "    ${CYAN}https://apps.apple.com/app/tailscale/id1475387142${NC}"
   echo ""
   echo -e "  Then open Tailscale, log in, and re-run this script."
   exit 1

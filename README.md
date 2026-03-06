@@ -31,9 +31,8 @@ Master C ──┘    Works on any network        └── Worker N
 
 **On every machine:**
 
-1. **Install Tailscale** — pick one:
-   - App Store: https://apps.apple.com/app/tailscale/id1475387142
-   - Homebrew: `brew install --cask tailscale`
+1. **Install Tailscale** from the App Store (recommended for reliability):
+   - https://apps.apple.com/app/tailscale/id1475387142
 
 2. **Open Tailscale** → Log in with the same account → Ensure it shows connected
 
