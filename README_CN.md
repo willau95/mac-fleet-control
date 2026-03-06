@@ -176,6 +176,24 @@ fleet-ssh add "名字" "user" "ip"
 fleet-ssh remove "名字"
 ```
 
+### 手动添加一台机器
+
+如果一台机器已经装好了，但不在你的 fleet 里（比如把一台 Master 加到另一台 Master 的 fleet），只需两步：
+
+**第 1 步：** 注册机器
+```bash
+fleet-ssh add "Office-iMac" "john" "100.x.x.x"
+```
+
+**第 2 步：** 配置免密 SSH（只需一次，会要求输入一次密码）
+```bash
+ssh-copy-id john@100.x.x.x
+```
+
+搞定。`fleet-ssh list` 应该就能看到它 online 了。
+
+> **说明：** `worker-setup.sh` 会自动完成以上两步。手动添加只在跳过安装脚本时才需要（比如把一台已有的 Master 作为 Worker 加到另一台 Master 的 fleet）。
+
 ### 鼠标/键盘控制
 
 ```bash

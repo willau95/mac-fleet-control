@@ -176,6 +176,24 @@ fleet-ssh add "name" "user" "ip"
 fleet-ssh remove "name"
 ```
 
+### Manually adding a machine
+
+If a machine is already set up but not in your fleet (e.g. adding a master to another master's fleet), do these 2 steps:
+
+**Step 1:** Register it
+```bash
+fleet-ssh add "Office-iMac" "john" "100.x.x.x"
+```
+
+**Step 2:** Set up passwordless SSH (one-time, will ask for password once)
+```bash
+ssh-copy-id john@100.x.x.x
+```
+
+Done. `fleet-ssh list` should now show it as online.
+
+> **Note:** `worker-setup.sh` does both steps automatically. Manual adding is only needed when you skip the setup script (e.g. adding an existing master as a worker to another master).
+
 ### Mouse & keyboard control
 
 ```bash
