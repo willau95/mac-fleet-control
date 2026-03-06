@@ -239,26 +239,41 @@ bash worker-harden.sh                              # 加固
 
 ## 已部署机器更新
 
-当 repo 有新版本时，在每台机器上跑：
+当 repo 有新版本时，按角色更新：
+
+### 第 1 步：更新所有 Worker（在任意 Master 上跑一次）
 
 ```bash
-cd ~/mac-fleet-control && git pull
+fleet-ssh all "cd ~/mac-fleet-control && git fetch origin && git reset --hard origin/main"
 ```
 
-或者从 Master 远程批量更新：
+一条命令更新整个 fleet。
+
+### 第 2 步：更新每台 Master
+
+在每台 **Master 机器**上本地跑（包括同时是 Master + Worker 的机器）：
 
 ```bash
-fleet-ssh all "cd ~/mac-fleet-control && git pull"
+cd ~/mac-fleet-control && git fetch origin && git reset --hard origin/main
+sudo cp fleet-ssh /usr/local/bin/fleet-ssh
 ```
 
-重新跑脚本（安全，幂等设计）：
+`sudo cp` 这步是必须的 — `fleet-ssh` 安装在 `/usr/local/bin/`，单纯 git pull 不会更新它。
+
+### 速查表
+
+| 角色 | 命令 | 在哪跑 |
+|------|------|--------|
+| 所有 Worker | `fleet-ssh all "cd ~/mac-fleet-control && git fetch origin && git reset --hard origin/main"` | 任意 Master |
+| 每台 Master | `cd ~/mac-fleet-control && git fetch origin && git reset --hard origin/main && sudo cp fleet-ssh /usr/local/bin/fleet-ssh` | 本地 |
+
+### 重新跑脚本（可选，仅当安装流程有变更时）
+
+所有脚本都是幂等设计，重复跑不会出问题：
 
 ```bash
-# Worker 重跑
 bash worker-setup.sh --master user@ip
 bash worker-harden.sh
-
-# Master 重跑
 bash master-setup.sh
 ```
 

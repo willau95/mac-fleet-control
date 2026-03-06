@@ -238,19 +238,37 @@ bash worker-harden.sh                              # Harden
 
 ## Updating Deployed Machines
 
-When the repo has updates:
+When the repo has updates, follow these steps based on each machine's role:
+
+### Step 1: Update all workers (run once from any master)
 
 ```bash
-cd ~/mac-fleet-control && git pull
+fleet-ssh all "cd ~/mac-fleet-control && git fetch origin && git reset --hard origin/main"
 ```
 
-Or remotely from master:
+This updates every worker in your fleet with one command.
+
+### Step 2: Update each master
+
+On every machine that acts as a **master** (including machines that are both master and worker), run locally:
 
 ```bash
-fleet-ssh all "cd ~/mac-fleet-control && git pull"
+cd ~/mac-fleet-control && git fetch origin && git reset --hard origin/main
+sudo cp fleet-ssh /usr/local/bin/fleet-ssh
 ```
 
-Re-run scripts (safe, idempotent):
+The `sudo cp` step is required because `fleet-ssh` is installed to `/usr/local/bin/` — `git pull` alone won't update it.
+
+### Quick reference
+
+| Role | Command | Where to run |
+|------|---------|-------------|
+| All workers | `fleet-ssh all "cd ~/mac-fleet-control && git fetch origin && git reset --hard origin/main"` | Any master |
+| Each master | `cd ~/mac-fleet-control && git fetch origin && git reset --hard origin/main && sudo cp fleet-ssh /usr/local/bin/fleet-ssh` | Locally on that master |
+
+### Re-run scripts (optional, only if setup changed)
+
+Safe to run again — all scripts are idempotent:
 
 ```bash
 bash worker-setup.sh --master user@ip
