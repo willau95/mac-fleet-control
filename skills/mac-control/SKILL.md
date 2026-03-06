@@ -5,10 +5,34 @@ description: Cross-machine remote control for Mac fleet. Use when an agent needs
 
 # Fleet Control — Cross-Machine Remote Operations
 
+## ⛔ IRON RULE: Never raw SSH. Always use fleet-ssh / fleet-exec.
+
+**NEVER do this:**
+```bash
+ssh hostname "command"           # ❌ hostname may not resolve
+ssh user@192.168.x.x "command"  # ❌ LAN IP may not be reachable
+ssh user@100.x.x.x "command"    # ❌ wrong user/key = auth failure
+```
+
+**ALWAYS do this:**
+```bash
+bash {baseDir}/scripts/fleet-exec.sh <machine> "command"   # ✅
+fleet-ssh <machine> "command"                               # ✅
+```
+
+`fleet-ssh` handles everything: Tailscale IP, correct user, correct SSH key, timeout, PATH setup. If you bypass it, you WILL hit auth failures, hostname resolution errors, or connection refused — and waste time debugging what's already solved.
+
+**If SSH fails even via fleet-ssh:**
+1. Run `fleet-ssh list` — is the machine online?
+2. If offline → report to user. You cannot wake a powered-off machine.
+3. If online but SSH fails → run `fleet-ssh ping` for diagnostics.
+4. **Never conclude "impossible" until you've tried fleet-ssh.** Never fall back to "please do it manually" without exhausting fleet-ssh first.
+
 ## Decision Tree (MUST follow this order)
 
 ```
 Task on remote machine?
+  ├─ 0. ALWAYS use fleet-ssh  → never raw ssh/scp
   ├─ 1. CLI command?          → fleet-exec (fastest, zero overhead)
   ├─ 2. Browser automation?   → fleet-browse (headless, no GUI)
   ├─ 3. Need to SEE screen?   → fleet-look (screenshot + vision)
@@ -127,8 +151,11 @@ See `{baseDir}/references/gui-patterns.md` for:
 
 ## Constraints
 
+- **NEVER raw SSH** — always use `fleet-ssh` or `fleet-exec.sh`. No exceptions.
 - **Always check `fleet-ssh list` first** to confirm machine is online
 - **CLI first** — if a terminal command exists for the task, use it
 - **Batch when possible** — use `fleet-exec.sh all` for fleet-wide ops
 - **Minimize screenshots** — each screenshot costs vision tokens
 - **One screenshot, multiple actions** — plan ahead from what you see
+- **Never say "please do it manually"** — if fleet-ssh can reach the machine, YOU execute it. Only report impossibility if the machine is genuinely offline/unreachable via `fleet-ssh list`.
+- **SCP also uses fleet registry** — for file transfer, resolve user@ip from `fleet-ssh list` output, don't guess
