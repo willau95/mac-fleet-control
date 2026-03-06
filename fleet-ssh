@@ -82,6 +82,7 @@ for i, m in enumerate(d.get('machines', []), 1):
         status = '\033[0;31m● timeout\033[0m'
     
     print(f'  {i:<3} {name:<23} {user:<13} {ip:<17} {status}')
+    print(f'      \033[2mVNC: open vnc://{user}@{ip}\033[0m')
 " 2>/dev/null
   echo ""
 
