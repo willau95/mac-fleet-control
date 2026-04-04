@@ -1,0 +1,14 @@
+# Security - prevent accidental commits
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+id_rsa
+id_ed25519
+id_*
+!id_*.pub
+kcpassword
+node_modules/
+.DS_Store
