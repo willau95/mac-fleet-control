@@ -64,7 +64,13 @@ Unauthorized access to computer systems is illegal in most jurisdictions. This i
 
 ### Reporting Security Issues
 
-If you discover a security vulnerability, please report it responsibly by opening a private issue on the GitHub repository. Do not disclose vulnerabilities publicly.
+If you discover a security vulnerability, **DO NOT** open a public issue.
+
+Please report it privately via:
+- **GitHub Security Advisories**: [Report a vulnerability](https://github.com/willau95/mac-fleet-control/security/advisories/new)
+- Or email: **willau95@proton.me**
+
+We will respond within 48 hours.
 
 ---
 

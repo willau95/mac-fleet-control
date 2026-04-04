@@ -1,5 +1,9 @@
 # Mac Fleet Control 🖥️
 
+![GitHub stars](https://img.shields.io/github/stars/willau95/mac-fleet-control)
+![GitHub license](https://img.shields.io/github/license/willau95/mac-fleet-control)
+![GitHub last commit](https://img.shields.io/github/last-commit/willau95/mac-fleet-control)
+
 > ⚠️ **本软件按"原样"提供，不含任何保证。您需自行承担授权、合规和安全责任。详见 [SECURITY.md](SECURITY.md)。**
 
 中文 | **[English](README.md)**
