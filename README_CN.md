@@ -33,22 +33,14 @@ Master C ──┘     任何网络都能连              └── Worker N
 
 ## 前置条件（手动，一次性）
 
-**每台机器都要做：**
+**每台机器只需 2 步手动操作：**
 
 1. **安装 Tailscale**（推荐 App Store 版，更稳定可靠）：
    - https://apps.apple.com/app/tailscale/id1475387142
 
 2. **打开 Tailscale** → 登录同一个账号 → 确保显示已连接
 
-3. **安装 Homebrew**（如果没有）:
-   ```bash
-   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-   ```
-
-4. **安装 Node.js**（如果没有）:
-   ```bash
-   brew install node
-   ```
+> Homebrew 和 Node.js 由 `worker-setup.sh` **自动安装并自动配置 PATH** — 无需手动操作。如果 Homebrew 已经装过但 `brew` 仍提示 `command not found`（macOS 新机的常见 bug），脚本会自动检测到并修复 PATH。
 
 ---
 
@@ -114,19 +106,17 @@ bash worker-setup.sh --master john@100.x.x.x --master jane@100.y.y.y
 
 #### ② Screen Recording（远程截图）
 > System Settings → Privacy & Security → **Screen & System Audio Recording**
-> → 点 **+** → 按 **Cmd+Shift+G** → 加这 2 个路径：
-> ```
-> /usr/libexec/sshd-keygen-wrapper
-> /opt/homebrew/opt/tailscale/bin/tailscaled
-> ```
+> → 点 **+** → 加这 2 个：
+> - **`/usr/libexec/sshd-keygen-wrapper`** — 按 **Cmd+Shift+G** 粘贴路径
+> - **`Tailscale.app`** — 进 `/Applications/`，选中整个 app *(不要进去找 binary)*
+>
+> *(如果你装的是 Homebrew 版 Tailscale 而非 App Store 版，把第二项换成 `/opt/homebrew/opt/tailscale/bin/tailscaled`)*
 
 #### ③ Accessibility（远程鼠标/键盘）
 > System Settings → Privacy & Security → **Accessibility**
-> → 点 **+** → 按 **Cmd+Shift+G** → 加这 2 个路径：
-> ```
-> /usr/libexec/sshd-keygen-wrapper
-> /opt/homebrew/opt/tailscale/bin/tailscaled
-> ```
+> → 点 **+** → 加同样的 2 个：
+> - **`/usr/libexec/sshd-keygen-wrapper`**
+> - **`Tailscale.app`**（Homebrew 版用 `tailscaled`）
 
 **这 3 个权限重启不丢，只需设一次。**
 

@@ -33,22 +33,14 @@ Master C ──┘    Works on any network        └── Worker N
 
 ## Prerequisites (manual, one-time)
 
-**On every machine:**
+**On every machine (only 2 manual steps):**
 
 1. **Install Tailscale** from the App Store (recommended for reliability):
    - https://apps.apple.com/app/tailscale/id1475387142
 
 2. **Open Tailscale** → Log in with the same account → Ensure it shows connected
 
-3. **Install Homebrew** (if not installed):
-   ```bash
-   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-   ```
-
-4. **Install Node.js** (if not installed):
-   ```bash
-   brew install node
-   ```
+> Homebrew and Node.js are installed (and added to PATH) automatically by `worker-setup.sh` — no manual setup needed. If Homebrew was already installed but `brew` says `command not found`, the script auto-fixes the PATH for you.
 
 ---
 
@@ -114,19 +106,17 @@ On the Worker Mac, open **System Settings**:
 
 #### ② Screen Recording (remote screenshots)
 > System Settings → Privacy & Security → **Screen & System Audio Recording**
-> → Click **+** → Press **Cmd+Shift+G** → Add these 2 paths:
-> ```
-> /usr/libexec/sshd-keygen-wrapper
-> /opt/homebrew/opt/tailscale/bin/tailscaled
-> ```
+> → Click **+** → add these 2 entries:
+> - **`/usr/libexec/sshd-keygen-wrapper`** — press **Cmd+Shift+G** to paste
+> - **`Tailscale.app`** — navigate to `/Applications/`, select the app *(do not go inside it)*
+>
+> *(If you installed Tailscale via Homebrew instead of the App Store, add `/opt/homebrew/opt/tailscale/bin/tailscaled` instead of `Tailscale.app`.)*
 
 #### ③ Accessibility (remote mouse/keyboard)
 > System Settings → Privacy & Security → **Accessibility**
-> → Click **+** → Press **Cmd+Shift+G** → Add these 2 paths:
-> ```
-> /usr/libexec/sshd-keygen-wrapper
-> /opt/homebrew/opt/tailscale/bin/tailscaled
-> ```
+> → Click **+** → add the same 2 entries as above:
+> - **`/usr/libexec/sshd-keygen-wrapper`**
+> - **`Tailscale.app`** (or `tailscaled` if Homebrew install)
 
 **These 3 permissions survive reboots — truly one-time.**
 

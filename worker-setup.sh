@@ -139,9 +139,57 @@ fi
 # ════════════════════════════════════════
 step "Step 4/7: Install Tools"
 
-# Check brew
+# ── Ensure Homebrew is installed AND in PATH ──
+# Common new-Mac trap: brew installer prints PATH-config commands but doesn't run
+# them, so a fresh shell still gets `command not found: brew`. We auto-fix it.
+ensure_brew_path() {
+  local brew_bin=""
+  for p in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+    [ -x "$p" ] && { brew_bin="$p"; break; }
+  done
+  [ -z "$brew_bin" ] && return 1
+
+  # Persist to ~/.zprofile if not already there (idempotent)
+  if ! grep -q "brew shellenv" "$HOME/.zprofile" 2>/dev/null; then
+    [ -s "$HOME/.zprofile" ] && echo "" >> "$HOME/.zprofile"
+    echo "eval \"\$($brew_bin shellenv)\"" >> "$HOME/.zprofile"
+    log "Added Homebrew to ~/.zprofile"
+  fi
+
+  # Also write to ~/.zshrc for non-login shells (some setups bypass .zprofile)
+  if ! grep -q "brew shellenv" "$HOME/.zshrc" 2>/dev/null; then
+    [ -s "$HOME/.zshrc" ] && echo "" >> "$HOME/.zshrc"
+    echo "eval \"\$($brew_bin shellenv)\"" >> "$HOME/.zshrc"
+  fi
+
+  # Activate in current session
+  eval "$("$brew_bin" shellenv)"
+  return 0
+}
+
 if ! command -v brew &>/dev/null; then
-  err "Homebrew not found. Install: /bin/bash -c \"\$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)\""
+  # Case A: brew binary exists but PATH not configured (the usual new-Mac bug)
+  if ensure_brew_path; then
+    log "Homebrew found at $(command -v brew) — PATH auto-configured"
+  else
+    # Case B: brew genuinely not installed — install non-interactively
+    warn "Homebrew not installed. Installing now (non-interactive)..."
+    if NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; then
+      if ensure_brew_path; then
+        log "Homebrew installed and PATH configured"
+      else
+        err "Homebrew installed but PATH config failed — open a new terminal and re-run"
+        ERRORS=$((ERRORS + 1))
+      fi
+    else
+      err "Homebrew install failed. Install manually: https://brew.sh"
+      ERRORS=$((ERRORS + 1))
+    fi
+  fi
+fi
+
+if ! command -v brew &>/dev/null; then
+  err "Homebrew still not available — skipping tool installation"
   ERRORS=$((ERRORS + 1))
 else
   # cliclick
@@ -158,9 +206,19 @@ else
   fi
 fi
 
-# Node.js check
+# Node.js check (auto-install via brew)
 if ! command -v node &>/dev/null; then
-  err "Node.js not found. Install: brew install node"
+  warn "Node.js not found. Installing via brew..."
+  if brew install node 2>&1 | tail -3; then
+    log "Node.js installed: $(node -v 2>/dev/null || echo 'pending PATH refresh')"
+  else
+    err "Node.js install failed — Playwright won't work"
+    ERRORS=$((ERRORS + 1))
+  fi
+fi
+
+if ! command -v node &>/dev/null; then
+  err "Node.js still not available — skipping Playwright"
   ERRORS=$((ERRORS + 1))
 else
   # Playwright
@@ -343,23 +401,44 @@ done
 # ════════════════════════════════════════
 step "Step 7/7: Manual Permissions (one-time)"
 
+# Pick the correct Tailscale target based on how it was installed.
+# GUI install (App Store / official .pkg) → grant the Tailscale.app bundle.
+# Homebrew CLI install → grant the tailscaled binary.
+case "$TS_CLI" in
+  /Applications/Tailscale.app/*)
+    TS_PERM_TARGET="/Applications/Tailscale.app"
+    TS_PERM_HOWTO="In the file picker, navigate to ${BOLD}/Applications${NC}, select ${BOLD}Tailscale.app${NC} (the whole app — do NOT go inside it)."
+    ;;
+  /opt/homebrew/*|/usr/local/*)
+    TS_PERM_TARGET="$(dirname "$TS_CLI")/tailscaled"
+    [ ! -e "$TS_PERM_TARGET" ] && TS_PERM_TARGET="$TS_CLI"
+    TS_PERM_HOWTO="Press ${BOLD}Cmd+Shift+G${NC} and paste: ${CYAN}$TS_PERM_TARGET${NC}"
+    ;;
+  *)
+    TS_PERM_TARGET="/Applications/Tailscale.app"
+    TS_PERM_HOWTO="In the file picker, select ${BOLD}/Applications/Tailscale.app${NC}."
+    ;;
+esac
+
 echo ""
 echo -e "  ${BOLD}${YELLOW}⚠ Set these ONCE in System Settings — they survive reboots:${NC}"
+echo -e "  ${DIM}(Detected Tailscale install: $TS_CLI)${NC}"
 echo ""
 echo -e "  ${BOLD}1. Screen Sharing${NC} (for VNC remote desktop)"
 echo -e "     System Settings → General → Sharing → ${CYAN}Screen Sharing → ON${NC}"
 echo ""
 echo -e "  ${BOLD}2. Screen Recording${NC} (for remote screenshots)"
 echo -e "     System Settings → Privacy & Security → ${CYAN}Screen & System Audio Recording${NC}"
-echo -e "     → Click ${BOLD}+${NC} → Press ${BOLD}Cmd+Shift+G${NC} → add these:"
-echo -e "       ${CYAN}/usr/libexec/sshd-keygen-wrapper${NC}"
-echo -e "       ${CYAN}/opt/homebrew/opt/tailscale/bin/tailscaled${NC}"
+echo -e "     → Click ${BOLD}+${NC} → add these two entries:"
+echo -e "       a) ${CYAN}/usr/libexec/sshd-keygen-wrapper${NC} ${DIM}(Cmd+Shift+G to paste)${NC}"
+echo -e "       b) ${CYAN}$TS_PERM_TARGET${NC}"
+echo -e "          ${DIM}$TS_PERM_HOWTO${NC}"
 echo ""
 echo -e "  ${BOLD}3. Accessibility${NC} (for remote mouse/keyboard)"
 echo -e "     System Settings → Privacy & Security → ${CYAN}Accessibility${NC}"
-echo -e "     → Click ${BOLD}+${NC} → Press ${BOLD}Cmd+Shift+G${NC} → add these:"
-echo -e "       ${CYAN}/usr/libexec/sshd-keygen-wrapper${NC}"
-echo -e "       ${CYAN}/opt/homebrew/opt/tailscale/bin/tailscaled${NC}"
+echo -e "     → Click ${BOLD}+${NC} → add these two entries:"
+echo -e "       a) ${CYAN}/usr/libexec/sshd-keygen-wrapper${NC} ${DIM}(Cmd+Shift+G to paste)${NC}"
+echo -e "       b) ${CYAN}$TS_PERM_TARGET${NC}"
 echo ""
 
 # ════════════════════════════════════════
