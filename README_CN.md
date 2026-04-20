@@ -65,15 +65,35 @@ bash worker-setup.sh --master john@100.x.x.x
 
 ## Worker 设置（被控方）
 
+### 步骤 0：在 Master 上拿到完整命令（强烈推荐）
+
+> **忘了 `--master` 后面填什么？** 这是新 Worker 装机最常见的卡点。在任意一台 **Master** 上跑：
+>
+> ```bash
+> fleet-ssh master
+> ```
+>
+> 它会输出一条**完整的、可以直接粘贴**的命令，例如：
+>
+> ```bash
+> git clone https://github.com/willau95/mac-fleet-control.git ~/mac-fleet-control \
+>   && cd ~/mac-fleet-control \
+>   && bash worker-setup.sh --master john@100.107.142.39
+> ```
+>
+> 整段复制，粘到新 Worker 的终端，回车就行。**不用记 IP，不用记用户名。**
+
 ### 步骤 1：跑脚本
 
-在需要**被控制**的 Mac 上跑（把 `--master` 换成上面 Master 输出的值）：
+如果你想自己拼命令，在 Worker Mac 上跑：
 
 ```bash
-git clone https://github.com/celestwong0920/mac-fleet-control.git ~/mac-fleet-control
+git clone https://github.com/willau95/mac-fleet-control.git ~/mac-fleet-control
 cd ~/mac-fleet-control
 bash worker-setup.sh --master <master用户名>@<master的tailscale-ip>
 ```
+
+`<master...>` 的值通过在 Master 上跑 `fleet-ssh master` 获得（见步骤 0）。
 
 例如：
 ```bash
@@ -84,6 +104,12 @@ bash worker-setup.sh --master john@100.x.x.x
 ```bash
 bash worker-setup.sh --master john@100.x.x.x --master jane@100.y.y.y
 ```
+
+> **全新 Mac 第一次装？** 最耗时的步骤都是 macOS 系统层面的，不是我们能完全控制的：
+> - **Xcode Command Line Tools**（10-20 分钟）：脚本在 **Step 0 后台异步触发安装**，和其他步骤并行进行，等 brew 用到时大概率已装好。中途如果系统弹出对话框，点 **Install** 即可。
+> - **Homebrew + Node + Playwright**（3-5 分钟）：全部自动。Playwright 改用 `chromium-headless-shell`（~70 MB，是完整 Chromium 的一半），因为 fleet-tools 只做无头操作。
+>
+> 如果 brew 之前已经装过但 `brew` 命令仍提示 `command not found`（macOS 新机的常见 bug），脚本会自动检测并修复 PATH，无需手动改 `.zprofile`。
 
 **脚本会自动：**
 - ✅ 检查 Tailscale 连接
@@ -149,6 +175,9 @@ bash worker-harden.sh
 ```bash
 # 查看所有机器
 fleet-ssh list
+
+# 在 master 上输出"加新 worker"的可粘贴命令
+fleet-ssh master
 
 # Ping 测速
 fleet-ssh ping

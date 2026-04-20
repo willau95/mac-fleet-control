@@ -65,15 +65,35 @@ bash worker-setup.sh --master john@100.x.x.x
 
 ## Worker Setup (controlled machine)
 
+### Step 0: Find the master command (on the master)
+
+> **Forgot what to type for `--master`?** This is the most common friction point. On any **master** Mac, run:
+>
+> ```bash
+> fleet-ssh master
+> ```
+>
+> It prints a complete, paste-ready command like:
+>
+> ```bash
+> git clone https://github.com/willau95/mac-fleet-control.git ~/mac-fleet-control \
+>   && cd ~/mac-fleet-control \
+>   && bash worker-setup.sh --master john@100.107.142.39
+> ```
+>
+> Copy the entire block, paste into the new worker's terminal, and you're done. No need to remember IPs or usernames.
+
 ### Step 1: Run the script
 
-Run on any Mac that needs to **be controlled** (replace `--master` with the value from master setup):
+If you'd rather build the command yourself, on the worker Mac:
 
 ```bash
-git clone https://github.com/celestwong0920/mac-fleet-control.git ~/mac-fleet-control
+git clone https://github.com/willau95/mac-fleet-control.git ~/mac-fleet-control
 cd ~/mac-fleet-control
 bash worker-setup.sh --master <master-user>@<master-tailscale-ip>
 ```
+
+Where the `<master-…>` values come from running `fleet-ssh master` on the master (see Step 0 above).
 
 Example:
 ```bash
@@ -84,6 +104,12 @@ Multiple masters:
 ```bash
 bash worker-setup.sh --master john@100.x.x.x --master jane@100.y.y.y
 ```
+
+> **First-time on a brand-new Mac?** The longest steps are out of our control:
+> - **Xcode Command Line Tools** (~10–20 min): The script kicks this off in the background at Step 0 so it overlaps with the rest of setup. You may still see a system dialog — click **Install** if it appears.
+> - **Homebrew + Node + Playwright** (~3–5 min): Auto-installed. Playwright uses `chromium-headless-shell` (~70 MB, half the size of full Chromium) since fleet-tools only does headless work.
+>
+> If brew install was already done before running this script, the script auto-fixes the PATH (the common new-Mac trap where `brew` says "command not found" until you edit `.zprofile`).
 
 **The script automatically:**
 - ✅ Checks Tailscale connection
@@ -149,6 +175,9 @@ Will ask for macOS password once (for auto-login setup), everything else is auto
 ```bash
 # List all machines
 fleet-ssh list
+
+# Print the paste-able worker setup command (run on a master)
+fleet-ssh master
 
 # Ping all
 fleet-ssh ping

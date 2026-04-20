@@ -250,6 +250,48 @@ for m in d.get('machines', []):
   done
 }
 
+# ── Show master info (paste-able worker setup command) ──
+show_master() {
+  local ts_cli=""
+  for p in tailscale /opt/homebrew/bin/tailscale /usr/local/bin/tailscale "/Applications/Tailscale.app/Contents/MacOS/Tailscale"; do
+    if command -v "$p" &>/dev/null || [ -x "$p" ]; then
+      "$p" version &>/dev/null && { ts_cli="$p"; break; }
+    fi
+  done
+
+  if [ -z "$ts_cli" ]; then
+    echo -e "${RED}Tailscale not found on this machine.${NC}"
+    exit 1
+  fi
+
+  local ts_ip
+  ts_ip=$("$ts_cli" ip -4 2>/dev/null | head -1)
+  local me
+  me=$(whoami)
+  local hn
+  hn=$("$ts_cli" status --json 2>/dev/null | python3 -c "import sys,json; print(json.load(sys.stdin).get('Self',{}).get('HostName',''))" 2>/dev/null || hostname -s)
+
+  if [ -z "$ts_ip" ]; then
+    echo -e "${RED}Tailscale not connected.${NC} Open the app and log in."
+    exit 1
+  fi
+
+  echo ""
+  echo -e "${BOLD}This master:${NC}"
+  echo -e "  Hostname:     ${CYAN}$hn${NC}"
+  echo -e "  Tailscale IP: ${CYAN}$ts_ip${NC}"
+  echo -e "  Username:     ${CYAN}$me${NC}"
+  echo ""
+  echo -e "${BOLD}Run this on each new worker Mac (copy-paste):${NC}"
+  echo ""
+  echo -e "${CYAN}git clone https://github.com/willau95/mac-fleet-control.git ~/mac-fleet-control \\"
+  echo -e "  && cd ~/mac-fleet-control \\"
+  echo -e "  && bash worker-setup.sh --master $me@$ts_ip${NC}"
+  echo ""
+  echo -e "${DIM}(Will prompt once for the master password — afterwards passwordless.)${NC}"
+  echo ""
+}
+
 # ── Ping all ──
 ping_all() {
   init_fleet
@@ -282,6 +324,7 @@ case "${1:-}" in
     echo -e "${BOLD}fleet-ssh — Mac Fleet Control${NC}"
     echo ""
     echo "  fleet-ssh list                    Show all machines"
+    echo "  fleet-ssh master                  Print paste-able worker setup command"
     echo "  fleet-ssh <#> \"<command>\"         Run by number"
     echo "  fleet-ssh <name> \"<command>\"      Run by name"
     echo "  fleet-ssh all \"<command>\"         Run on ALL machines"
@@ -292,6 +335,7 @@ case "${1:-}" in
     echo ""
     ;;
   list) list_machines ;;
+  master|info|whoami) show_master ;;
   ping) ping_all ;;
   add) add_machine "$2" "$3" "$4" ;;
   remove) remove_machine "$2" ;;

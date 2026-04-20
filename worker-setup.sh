@@ -52,6 +52,70 @@ done
 ERRORS=0
 WHOAMI=$(whoami)
 
+# ── Background Xcode Command Line Tools install ──
+# This is the #1 source of "stuck for 20 minutes" pain. Brew triggers CLT install
+# via a GUI prompt that blocks until you click. We pre-trigger it non-interactively
+# at the very start of setup, in the background, so it finishes (or is well underway)
+# by the time we need brew. Saves ~20 min of perceived wall time.
+CLT_PID=""
+preflight_clt() {
+  if xcode-select -p &>/dev/null; then
+    log "Xcode Command Line Tools already installed"
+    return 0
+  fi
+
+  warn "Xcode Command Line Tools missing — installing in background (this normally takes 10-20 min)"
+
+  # Trick from softwareupdate docs: this sentinel file makes `softwareupdate -l`
+  # surface the CLT package as installable, so we can install it without GUI.
+  local sentinel="/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress"
+  touch "$sentinel"
+
+  # Find the latest Command Line Tools label
+  local clt_label
+  clt_label=$(softwareupdate -l 2>&1 | awk -F'Label: ' '/\* Label: Command Line Tools/ { sub(/^[[:space:]]+/, "", $2); print $2 }' | sort -V | tail -1)
+
+  if [ -z "$clt_label" ]; then
+    warn "Could not detect CLT package via softwareupdate — falling back to GUI installer"
+    rm -f "$sentinel"
+    xcode-select --install &>/dev/null &
+    CLT_PID=$!
+    echo -e "  ${DIM}A GUI dialog will appear — please click 'Install'. Setup continues in parallel.${NC}"
+    return 0
+  fi
+
+  # Background install (no GUI, no scan, runs as root via sudo — sudo cred is already cached
+  # from earlier 'sudo -v' calls in this session; if not, prompt now)
+  sudo -v 2>/dev/null
+  ( sudo softwareupdate -i "$clt_label" --verbose >/tmp/clt-install.log 2>&1; rm -f "$sentinel" ) &
+  CLT_PID=$!
+  log "CLT installing in background (PID $CLT_PID, log: /tmp/clt-install.log)"
+  echo -e "  ${DIM}Setup will continue in parallel. We'll wait for CLT before installing brew.${NC}"
+}
+
+# Wait for the background CLT install to finish (called right before we need brew)
+wait_for_clt() {
+  [ -z "$CLT_PID" ] && return 0
+  if kill -0 "$CLT_PID" 2>/dev/null; then
+    warn "Waiting for Xcode CLT install to finish (started in Step 0)..."
+    wait "$CLT_PID" 2>/dev/null
+  fi
+  if xcode-select -p &>/dev/null; then
+    log "Xcode CLT install complete"
+  else
+    err "Xcode CLT install did not complete — Homebrew may fail. Log: /tmp/clt-install.log"
+    ERRORS=$((ERRORS + 1))
+  fi
+}
+
+# ════════════════════════════════════════
+# Step 0: Preflight — Xcode CLT in background
+# ════════════════════════════════════════
+step "Step 0: Preflight (Xcode Command Line Tools)"
+# Cache sudo creds upfront so the background install doesn't stall on a password prompt
+sudo -v
+preflight_clt
+
 # ── Detect Tailscale CLI ──
 detect_tailscale() {
   for p in tailscale /opt/homebrew/bin/tailscale /usr/local/bin/tailscale "/Applications/Tailscale.app/Contents/MacOS/Tailscale"; do
@@ -173,6 +237,9 @@ if ! command -v brew &>/dev/null; then
     log "Homebrew found at $(command -v brew) — PATH auto-configured"
   else
     # Case B: brew genuinely not installed — install non-interactively
+    # First make sure CLT (kicked off in Step 0) has finished so brew installer
+    # doesn't pop its own GUI prompt and stall for 20 minutes.
+    wait_for_clt
     warn "Homebrew not installed. Installing now (non-interactive)..."
     if NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"; then
       if ensure_brew_path; then
@@ -222,16 +289,27 @@ if ! command -v node &>/dev/null; then
   ERRORS=$((ERRORS + 1))
 else
   # Playwright
-  if [ -d "$HOME/fleet-tools/node_modules/playwright" ]; then
-    log "Playwright already installed"
+  # We use chromium-headless-shell instead of full chromium: ~70 MB vs ~150 MB,
+  # downloads ~2x faster, and our use case (screenshots + scripted browser actions)
+  # never needs a visible UI. If you ever need headed mode, switch back to 'chromium'.
+  if [ -d "$HOME/fleet-tools/node_modules/playwright" ] && \
+     [ -d "$HOME/Library/Caches/ms-playwright" ] && \
+     ls "$HOME/Library/Caches/ms-playwright" 2>/dev/null | grep -q "chromium"; then
+    log "Playwright + browser already installed"
   else
-    warn "Installing Playwright + Chromium..."
+    warn "Installing Playwright + chromium-headless-shell (~70 MB)..."
     mkdir -p ~/fleet-tools
     cd ~/fleet-tools
-    npm init -y &>/dev/null
-    if npm install playwright &>/dev/null; then
-      npx playwright install chromium 2>&1 | tail -1
-      log "Playwright + Chromium installed"
+    [ ! -f package.json ] && npm init -y &>/dev/null
+    if npm install playwright --no-audit --no-fund --prefer-offline &>/dev/null; then
+      # --only-shell downloads the smaller headless shell instead of full chromium.
+      # Our screenshot-url.js / browser-action.js scripts work identically with it.
+      if npx playwright install --only-shell chromium 2>&1 | tail -2; then
+        log "Playwright + chromium-headless-shell installed"
+      else
+        warn "Headless-shell install failed — falling back to full chromium"
+        npx playwright install chromium 2>&1 | tail -1
+      fi
     else
       err "Playwright install failed — browser automation won't work"
       ERRORS=$((ERRORS + 1))
