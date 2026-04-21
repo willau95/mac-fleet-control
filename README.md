@@ -39,7 +39,11 @@ A black/white window opens — this is where you'll paste commands. Right-click 
 
 ### Step B — Install Tailscale on every Mac
 
-Tailscale is the secure network layer that connects all your Macs. **Install on each machine** (master + every worker):
+Tailscale is the secure network layer that connects all your Macs. **Install on each machine** (master + every worker). Pick **one** of the two methods below — the scripts detect both automatically.
+
+#### Option 1 (recommended) — App Store GUI version
+
+Best for long-running fleet machines. Native auto-start, auto-update, and system permission dialogs.
 
 1. Open the App Store → search **Tailscale** → Install
    *(Direct link: https://apps.apple.com/app/tailscale/id1475387142)*
@@ -56,7 +60,39 @@ Tailscale is the secure network layer that connects all your Macs. **Install on 
    ```
    You should see an IP starting with `100.x.x.x` (Tailscale assigns these).
 
-> **Why App Store and not Homebrew?** The App Store version installs as a proper macOS app with auto-launch on boot, automatic updates, and native permission dialogs. The Homebrew version requires extra manual setup. We strongly recommend the App Store version for fleet machines that should be always-on.
+#### Option 2 — Homebrew CLI version
+
+Best if you already live in the terminal or don't want a menu-bar app. Requires a bit more setup (manually start the daemon, run `tailscale up` to log in via browser).
+
+1. Install Homebrew first (if not present):
+   ```bash
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+   ```
+
+2. Install Tailscale via Homebrew. Two flavors:
+   - **CLI daemon only** (headless machines / servers):
+     ```bash
+     brew install tailscale
+     sudo brew services start tailscale
+     ```
+   - **Cask with menu bar app** (identical to App Store version):
+     ```bash
+     brew install --cask tailscale-app
+     ```
+
+3. Log in:
+   ```bash
+   tailscale up
+   ```
+   This prints an authentication URL — open it in your browser and log in. Use the **same** Tailscale account on every Mac.
+
+4. Verify:
+   ```bash
+   tailscale ip -4
+   ```
+   You should see a `100.x.x.x` IP.
+
+> **App Store vs. Homebrew — which should I pick?** The App Store GUI version auto-starts on boot, auto-updates, and handles system permission dialogs natively — ideal for unattended fleet workers. The Homebrew CLI version is lighter and scriptable, but you'll manage the daemon via `brew services` and re-run `tailscale up` after re-auth events. Both work equally well with this project — the scripts detect either install location (`/Applications/Tailscale.app/...` or `/opt/homebrew/bin/tailscale`). Pick whichever fits your workflow.
 
 ### Step C — Sign in once at https://login.tailscale.com (recommended)
 

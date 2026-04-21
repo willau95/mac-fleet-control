@@ -39,7 +39,11 @@
 
 ### B 步 — 在每一台 Mac 上装 Tailscale
 
-Tailscale 是把所有 Mac 安全连接起来的网络层。**每一台机器都要装**（master + 每一台 worker）：
+Tailscale 是把所有 Mac 安全连接起来的网络层。**每一台机器都要装**（master + 每一台 worker）。下面**二选一**，脚本两种安装方式都自动识别。
+
+#### 方式 1（推荐）—— App Store GUI 版
+
+最适合 fleet 上长期在线的机器。原生的开机自启、自动更新、系统权限对话框都自带。
 
 1. 打开 App Store → 搜索 **Tailscale** → 安装
    *（直接链接：https://apps.apple.com/app/tailscale/id1475387142）*
@@ -56,7 +60,39 @@ Tailscale 是把所有 Mac 安全连接起来的网络层。**每一台机器都
    ```
    你应该看到一个 `100.x.x.x` 开头的 IP（这是 Tailscale 分配的）。
 
-> **为什么用 App Store 而不是 Homebrew？** App Store 版作为标准 macOS 应用安装，开机自启、自动更新、原生权限对话框都自带。Homebrew 版需要额外手动配置。我们强烈推荐 App Store 版用于 fleet 上长期在线的机器。
+#### 方式 2 —— Homebrew CLI 版
+
+适合终端党或不想要菜单栏 app 的机器。需要多一步手动操作（启动 daemon、浏览器里点登录）。
+
+1. 先装 Homebrew（如果还没装）：
+   ```bash
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+   ```
+
+2. 通过 Homebrew 装 Tailscale，有两种装法：
+   - **纯 CLI daemon**（无头机器 / 服务器）：
+     ```bash
+     brew install tailscale
+     sudo brew services start tailscale
+     ```
+   - **Cask 菜单栏版**（和 App Store 版一样）：
+     ```bash
+     brew install --cask tailscale-app
+     ```
+
+3. 登录：
+   ```bash
+   tailscale up
+   ```
+   会输出一个认证 URL — 在浏览器打开并登录。**所有 Mac 登同一个** Tailscale 账号。
+
+4. 验证：
+   ```bash
+   tailscale ip -4
+   ```
+   应该看到 `100.x.x.x` 开头的 IP。
+
+> **App Store 版 vs. Homebrew 版，怎么选？** App Store GUI 版开机自启、自动更新、系统权限对话框原生处理，最适合长期无人值守的 fleet worker。Homebrew CLI 版更轻量、更脚本化，但你得用 `brew services` 管 daemon，重新认证后要再跑 `tailscale up`。两种本项目都完全支持 —— 脚本自动检测两种安装位置（`/Applications/Tailscale.app/...` 或 `/opt/homebrew/bin/tailscale`）。按你的工作流选就行。
 
 ### C 步 — 登录 https://login.tailscale.com 检查（推荐）
 
