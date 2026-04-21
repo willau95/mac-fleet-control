@@ -347,6 +347,18 @@ bash worker-harden.sh                              # Harden
 
 ## Updating Deployed Machines
 
+### TL;DR — Update a single master (one command)
+
+On any master that's out of date:
+
+```bash
+cd ~/mac-fleet-control && git pull origin main && sudo cp fleet-ssh /usr/local/bin/fleet-ssh && fleet-ssh master
+```
+
+The trailing `fleet-ssh master` verifies the new version took effect — if it prints the paste-ready worker-install block, you're on the latest `fleet-ssh`. If the output looks like the old "Usage: fleet-ssh <target>..." error, see the **shadow-PATH trap** callout further down.
+
+---
+
 When the repo has updates, follow these steps based on each machine's role:
 
 ### Step 1: Update all workers (run once from any master)

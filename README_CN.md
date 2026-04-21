@@ -348,6 +348,18 @@ bash worker-harden.sh                              # 加固
 
 ## 已部署机器更新
 
+### TL;DR — 单台 master 更新（一条命令搞定）
+
+在任何一台需要更新的 master 上跑：
+
+```bash
+cd ~/mac-fleet-control && git pull origin main && sudo cp fleet-ssh /usr/local/bin/fleet-ssh && fleet-ssh master
+```
+
+末尾那个 `fleet-ssh master` 顺便验证新版本是否生效 — 如果输出的是可粘贴的 worker 安装命令块，说明 `fleet-ssh` 已经是最新的。如果看到旧版的 `Usage: fleet-ssh <target>...` 错误，去下面**「常见坑：PATH 遮蔽问题」**那一段修。
+
+---
+
 当 repo 有新版本时，按角色更新：
 
 ### 第 1 步：更新所有 Worker（在任意 Master 上跑一次）
